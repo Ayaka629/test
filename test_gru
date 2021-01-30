@@ -1,0 +1,102 @@
+import os
+import shutil
+from time import sleep
+from selenium import webdriver
+from selenium.webdriver.support.select import Select
+from selenium.webdriver.chrome.options import Options
+import pandas as pd
+import numpy as np
+import codecs
+import datetime
+import glob
+import pyautogui
+import win32gui,win32com.client
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.alert import Alert
+from selenium.webdriver.support import expected_conditions as EC
+
+
+from bs4 import BeautifulSoup
+import requests
+
+
+
+
+
+os.chdir("C:\\Users\\wwwwwwww")
+driver=webdriver.Chrome()
+#driver=webdriver.Chrome(executable_path='C:\\Users\\wwwwww\\Anaconda\\Lib\\site-packages\\selenium\\chromedriver.exe')
+driver.implicitly_wait(3)
+driver.get("https://pro.gnavi.co.jp/")
+#ログイン
+driver.find_element_by_id("loginID").send_keys("xxxxxxx")
+driver.find_element_by_id("input_password").send_keys("xxxxxxxx")
+driver.find_elements_by_xpath("/html/body/main/div[2]/div/div/div[2]/dl/dd/form/div[3]/div[2]/label")[0].click()
+driver.find_elements_by_tag_name("button")[0].click()
+sleep(3)
+data=pd.DataFrame()
+
+#for i in range(1,len(driver.find_elements_by_link_text("編集"))):
+for i in range(33,len(driver.find_elements_by_link_text("編集"))):
+#for i in range(1,3):
+    driver.find_elements_by_link_text("編集")[i].click()    
+    Handles = driver.window_handles
+    driver.switch_to_window(Handles[1])
+    sleep(3)
+
+    #shell = win32com.client.Dispatch("WScript.Shell")
+    #shell.SendKeys('%')
+    #win=win32gui.FindWindow(None,"レストランページ編集トップ【ぐるなびPRO for 飲食店】 - Google Chrome")
+    #win32gui.SetForegroundWindow(win)
+    #sleep(1)
+    #pyautogui.press("end", interval=0.5)
+    #sleep(1)
+    try:
+        
+        try:
+            driver.find_element_by_link_text("LIVE JAPANページ編集").click()
+        except:
+            pass
+        sleep(1)
+        driver.find_element_by_link_text("予約管理").click()
+        sleep(1)
+        
+        driver.get("https://manage.gnavi.co.jp/rsv/point-history")
+        sleep(1)
+        html = driver.page_source.encode('utf-8')
+        soup = BeautifulSoup(html, "html.parser")
+        #店舗名
+        tempo=driver.find_element_by_class_name("common-header-shopname").text
+        #利用日
+        date_list=pd.Series([tag.text for tag in soup('dt')])
+        #利用額
+        pt_list=[tag.text for tag in soup('dd')]
+        pt_list=pd.Series([l.replace(" pt","") for l in pt_list])
+        empty=pd.Series()
+        df=pd.DataFrame({"店舗名":empty,
+                         "利用日":date_list,
+                         "利用額":pt_list})
+        df=df.fillna(tempo)
+        data=data.append(df)
+
+        shell = win32com.client.Dispatch("WScript.Shell")
+        shell.SendKeys('%')
+        win=win32gui.FindWindow(None,"ポイント利用履歴:ぐるなびPRO for 飲食店 - Google Chrome")
+        win32gui.SetForegroundWindow(win)
+        sleep(1)
+    except:
+            shell = win32com.client.Dispatch("WScript.Shell")
+            shell.SendKeys('%')
+            win=win32gui.FindWindow(None,"レストランページ編集トップ【ぐるなびPRO for 飲食店】 - Google Chrome")
+            win32gui.SetForegroundWindow(win)
+            sleep(1)
+            pass
+    pyautogui.keyDown("ctrl")
+    pyautogui.press("w", interval=0.1)
+    pyautogui.keyUp("ctrl")
+    
+    driver.switch_to_window(Handles[0])
+
+
+data.to_excel("ぐるなび.xlsx",index=False)
